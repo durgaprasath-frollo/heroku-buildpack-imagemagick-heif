@@ -1,4 +1,4 @@
 #! /bin/bash
 
 # Always use when requested
-echo "imagemagick" && exit 0
+echo "imagemagick7" && exit 0
