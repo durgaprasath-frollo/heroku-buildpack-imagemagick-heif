@@ -1,0 +1,40 @@
+FROM heroku/heroku:24-build
+ARG DEBIAN_FRONTEND=noninteractive
+
+USER root
+
+# See env vars below to update package versions
+# * $LIBIMAGEMAGICK_VERSION
+# * $LIBWEBP_VERSION
+# * $LIBHIEF_VERSION
+# * $LIBDE265_VERSION
+
+RUN apt-get update && apt-get install -y \
+  libgif-dev libomp-dev
+
+ENV PATH="/usr/src/imagemagick/bin:$PATH:\$PATH"
+ENV CPPPATH="/usr/src/imagemagick/include:$CPPPATH"
+ENV CPATH="/usr/src/imagemagick/include:$CPATH"
+ENV LIBRARY_PATH="/usr/src/imagemagick/lib:$LIBRARY_PATH"
+ENV LD_LIBRARY_PATH="/usr/src/imagemagick/lib:$LD_LIBRARY_PATH"
+
+# Remove libwebp from heroku image
+RUN ldconfig /usr/src/imagemagick/lib/
+
+# https://github.com/ImageMagick/Website/blob/main/ChangeLog.md
+ENV IMAGEMAGICK_VERSION=7.1.1-46
+
+RUN cd /usr/src/ \
+  && wget https://github.com/ImageMagick/ImageMagick/archive/refs/tags/$IMAGEMAGICK_VERSION.tar.gz \
+  && tar xf $IMAGEMAGICK_VERSION.tar.gz \
+  && cd ImageMagick-7* \
+  && ./configure --with-heic=yes --prefix=/usr/src/imagemagick \
+  && make -j$(nproc) \
+  && make install
+
+RUN cd /usr/src/imagemagick \
+  && rm -rf build \
+  && mkdir build \
+  && tar czf \
+  /usr/src/imagemagick/build/imagemagick-heroku-24.tar.gz bin include lib etc share
+CMD ["tail", "-f", "/dev/null"]
